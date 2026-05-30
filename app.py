@@ -3,6 +3,8 @@ import pickle
 import numpy as np
 from PIL import Image
 import datetime
+import base64
+import io
 
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -22,18 +24,23 @@ if "active_page" not in st.session_state:
 
 try:
     logo = Image.open("logo.png")
+    _buf = io.BytesIO()
+    logo.save(_buf, format="PNG")
+    LOGO_B64 = base64.b64encode(_buf.getvalue()).decode()
+    LOGO_HTML = f'<img src="data:image/png;base64,{LOGO_B64}" style="width:88px;height:88px;object-fit:contain;flex-shrink:0;" />'
     has_logo = True
-except:
+except Exception:
     has_logo = False
+    LOGO_HTML = ''
 
 # ---------------- LOAD MODEL FILES ---------------- #
 
 try:
-    model   = pickle.load(open("model.pkl",   "rb"))
-    encoder = pickle.load(open("encoder.pkl", "rb"))
-    columns = pickle.load(open("columns.pkl", "rb"))
+    with open("model.pkl",   "rb") as f: model   = pickle.load(f)
+    with open("encoder.pkl", "rb") as f: encoder = pickle.load(f)
+    with open("columns.pkl", "rb") as f: columns = pickle.load(f)
     model_loaded = True
-except:
+except Exception:
     model_loaded = False
     columns = ["fever","cough","headache","fatigue","nausea","vomiting",
                "chest pain","shortness of breath","dizziness","rash"]
@@ -795,18 +802,9 @@ if active == "Dashboard":
     st.markdown('<div class="page-section">', unsafe_allow_html=True)
 
     # Hero — logo + text inline
-    import base64, io as _io
-    if has_logo:
-        _buf = _io.BytesIO()
-        logo.save(_buf, format="PNG")
-        _b64 = base64.b64encode(_buf.getvalue()).decode()
-        _logo_html = f'<img src="data:image/png;base64,{_b64}" style="width:88px;height:88px;object-fit:contain;flex-shrink:0;" />'
-    else:
-        _logo_html = ''
-
     st.markdown(f"""
     <div class="hero-flex" style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
-        {_logo_html}
+        {LOGO_HTML}
         <div>
             <div class="hero-title">AI Disease Predictor</div>
             <div class="hero-subtitle">⬡ Neural Symptom Analysis Engine · v3.0</div>
@@ -815,20 +813,6 @@ if active == "Dashboard":
     """, unsafe_allow_html=True)
 
     st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
-
-    # Heartbeat
-    st.markdown("""
-    <div class="heartbeat-container">
-        <div class="hb-label">❤ LIVE ECG</div>
-        <div class="hb-svg-wrap">
-            <svg class="heartbeat-svg" viewBox="0 0 600 60" preserveAspectRatio="none">
-                <polyline class="hb-glow" points="0,30 60,30 80,30 90,5 100,55 110,30 130,30 190,30 210,30 220,5 230,55 240,30 260,30 320,30 340,30 350,5 360,55 370,30 390,30 450,30 470,30 480,5 490,55 500,30 530,30 600,30"/>
-                <polyline class="hb-line"  points="0,30 60,30 80,30 90,5 100,55 110,30 130,30 190,30 210,30 220,5 230,55 240,30 260,30 320,30 340,30 350,5 360,55 370,30 390,30 450,30 470,30 480,5 490,55 500,30 530,30 600,30"/>
-            </svg>
-        </div>
-        <div><div class="hb-bpm">72</div><div class="hb-unit">BPM</div></div>
-    </div>
-    """, unsafe_allow_html=True)
 
     # Stat cards
     st.markdown('<div class="section-title">⬡ &nbsp;System Overview</div>', unsafe_allow_html=True)
@@ -883,9 +867,6 @@ elif active == "Diagnose":
     st.markdown('<div class="page-section">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">🩺 &nbsp;Symptom Input Module</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="glass-card-3d">', unsafe_allow_html=True)
-    st.markdown('<div class="card-header-label">⬡ &nbsp;Select Symptoms</div>', unsafe_allow_html=True)
-
     selected_symptoms = st.multiselect("Choose symptoms from the database", columns)
 
     st.markdown("""
@@ -899,9 +880,11 @@ elif active == "Diagnose":
             <div class="scan-cell">SYMPTOMS</div>
             <div class="scan-cell">INFERENCE</div>
         </div>
-        <div class="scan-status">AI ENGINE READY ·&nbsp;<span>█</span></div>
+        <div class="scan-status">AI ENGINE READY &nbsp;·&nbsp; <span>█</span></div>
     </div>
     """, unsafe_allow_html=True)
+
+
 
     if st.button("⬡  ANALYSE SYMPTOMS  ⬡"):
         if not selected_symptoms:
