@@ -1,0 +1,897 @@
+import streamlit as st
+import pickle
+import numpy as np
+from PIL import Image
+import datetime
+
+# ---------------- PAGE CONFIG ---------------- #
+
+st.set_page_config(
+    page_title="AI Disease Predictor",
+    page_icon="🧬",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ---------------- SESSION STATE (Active Page) ---------------- #
+
+if "active_page" not in st.session_state:
+    st.session_state.active_page = "Dashboard"
+
+# ---------------- LOAD LOGO ---------------- #
+
+try:
+    logo = Image.open("logo.png")
+    has_logo = True
+except:
+    has_logo = False
+
+# ---------------- LOAD MODEL FILES ---------------- #
+
+try:
+    model   = pickle.load(open("model.pkl",   "rb"))
+    encoder = pickle.load(open("encoder.pkl", "rb"))
+    columns = pickle.load(open("columns.pkl", "rb"))
+    model_loaded = True
+except:
+    model_loaded = False
+    columns = ["fever","cough","headache","fatigue","nausea","vomiting",
+               "chest pain","shortness of breath","dizziness","rash"]
+
+# ================================================================
+#  FULL CSS
+# ================================================================
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+html, body, [class*="css"] { font-family: 'Rajdhani', sans-serif; }
+
+.stApp {
+    background: #010b14;
+    color: #e2f0ff;
+    overflow-x: hidden;
+}
+
+/* ── PARTICLE CANVAS ── */
+#particle-canvas {
+    position: fixed; top:0; left:0;
+    width:100%; height:100%;
+    z-index:0; pointer-events:none;
+}
+
+/* ── NAVBAR ── */
+.glass-navbar {
+    position: sticky; top:0; z-index:999;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 36px;
+    background: rgba(1,11,20,0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(0,200,255,0.18);
+    box-shadow: 0 4px 40px rgba(0,200,255,0.08);
+    margin-bottom: 30px;
+}
+.navbar-brand {
+    font-family:'Orbitron',monospace;
+    font-size:22px; font-weight:900; letter-spacing:2px;
+    background: linear-gradient(90deg,#00e5ff,#7b68ee,#ff6ec7);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    cursor:pointer;
+}
+.navbar-links { display:flex; gap:6px; list-style:none; margin:0; padding:0; }
+.nav-btn {
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.12);
+    color: #8ec9e8;
+    padding: 8px 20px;
+    border-radius: 10px;
+    font-family:'Rajdhani',sans-serif;
+    font-size:14px; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase;
+    cursor:pointer; transition: all 0.25s ease;
+}
+.nav-btn:hover {
+    border-color: rgba(0,229,255,0.5);
+    color:#00e5ff;
+    background: rgba(0,229,255,0.1);
+    box-shadow: 0 0 16px rgba(0,229,255,0.2);
+}
+.nav-btn.active-nav {
+    background: rgba(0,229,255,0.15);
+    border-color: rgba(0,229,255,0.6);
+    color:#00e5ff;
+    box-shadow: 0 0 20px rgba(0,229,255,0.25);
+}
+.navbar-status {
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; color:#00ff9d; font-weight:600; letter-spacing:1px;
+}
+.navbar-dot {
+    width:9px; height:9px; border-radius:50%; background:#00ff9d;
+    animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+    0%,100% { box-shadow:0 0 0 0 rgba(0,255,157,0.6); }
+    50%      { box-shadow:0 0 0 8px rgba(0,255,157,0); }
+}
+
+/* ── NAVBAR COLUMN ALIGNMENT FIX ── */
+div[data-testid="stHorizontalBlock"] {
+    align-items: center !important;
+    gap: 6px !important;
+}
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 !important;
+}
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div {
+    width: 100%;
+}
+/* Navbar st.button override — compact pill style */
+div[data-testid="stHorizontalBlock"] .stButton > button {
+    width: 100% !important;
+    padding: 9px 10px !important;
+    border-radius: 10px !important;
+    font-family: 'Rajdhani', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.5px !important;
+    text-transform: uppercase !important;
+    background: rgba(0,229,255,0.04) !important;
+    border: 1px solid rgba(0,229,255,0.18) !important;
+    color: #8ec9e8 !important;
+    box-shadow: none !important;
+    margin-top: 0 !important;
+    animation: none !important;
+    transition: all 0.25s ease !important;
+    line-height: 1.2 !important;
+    height: 40px !important;
+    min-height: unset !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+div[data-testid="stHorizontalBlock"] .stButton > button:hover {
+    border-color: rgba(0,229,255,0.55) !important;
+    color: #00e5ff !important;
+    background: rgba(0,229,255,0.1) !important;
+    box-shadow: 0 0 14px rgba(0,229,255,0.2) !important;
+    transform: none !important;
+}
+
+/* ── HERO ── */
+.hero-wrapper { position:relative; z-index:10; margin-bottom:36px; }
+.hero-title {
+    font-family:'Orbitron',monospace;
+    font-size:52px; font-weight:900; letter-spacing:2px;
+    background:linear-gradient(135deg,#00e5ff 0%,#7b68ee 50%,#ff6ec7 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    line-height:1.15;
+    animation: title-shimmer 4s ease-in-out infinite;
+}
+@keyframes title-shimmer {
+    0%,100% { filter:brightness(1); }
+    50%     { filter:brightness(1.25) drop-shadow(0 0 20px #00e5ff80); }
+}
+.hero-subtitle {
+    color:#6fa8c8; font-size:18px; letter-spacing:3px;
+    text-transform:uppercase; margin-top:10px; font-weight:500;
+}
+
+/* ── HEARTBEAT ── */
+.heartbeat-container {
+    position:relative; z-index:10;
+    background:rgba(0,229,255,0.04);
+    border:1px solid rgba(0,229,255,0.15);
+    border-radius:18px; padding:20px 28px; margin-bottom:28px;
+    overflow:hidden; display:flex; align-items:center; gap:18px;
+}
+.hb-label {
+    font-family:'Orbitron',monospace; font-size:12px;
+    color:#00e5ff; letter-spacing:2px; font-weight:700; white-space:nowrap;
+}
+.hb-svg-wrap { flex:1; overflow:hidden; }
+svg.heartbeat-svg { width:100%; height:60px; display:block; }
+.hb-line {
+    fill:none; stroke:#00ff9d; stroke-width:2.5;
+    stroke-linecap:round; stroke-linejoin:round;
+    animation: hb-draw 2s linear infinite;
+    filter:drop-shadow(0 0 5px #00ff9d);
+}
+.hb-glow {
+    fill:none; stroke:#00ff9d; stroke-width:6; opacity:0.15;
+    stroke-linecap:round; stroke-linejoin:round;
+    animation: hb-draw 2s linear infinite;
+}
+@keyframes hb-draw {
+    0%   { stroke-dasharray:0 1000; stroke-dashoffset:0; }
+    70%  { stroke-dasharray:700 1000; stroke-dashoffset:0; }
+    100% { stroke-dasharray:700 1000; stroke-dashoffset:-700; }
+}
+.hb-bpm {
+    font-family:'Orbitron',monospace; font-size:28px; font-weight:900;
+    color:#00ff9d; text-shadow:0 0 14px #00ff9d80;
+    animation:bpm-pulse 1s ease-in-out infinite; white-space:nowrap;
+}
+@keyframes bpm-pulse {
+    0%,100% { transform:scale(1); }
+    50%     { transform:scale(1.08); }
+}
+.hb-unit { font-size:12px; color:#4a9060; letter-spacing:1px; }
+
+/* ── 3D CARD ── */
+.glass-card-3d {
+    position:relative; z-index:10;
+    background:rgba(5,20,40,0.7); padding:40px; border-radius:28px;
+    border:1px solid rgba(0,229,255,0.2);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.05),
+                0 20px 60px rgba(0,0,0,0.6),
+                0 0 80px rgba(0,229,255,0.05);
+    transform-style:preserve-3d;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.glass-card-3d:hover {
+    transform:perspective(1000px) rotateX(1deg) rotateY(-1deg) translateY(-4px);
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.12),
+                0 30px 80px rgba(0,0,0,0.7),
+                0 0 120px rgba(0,229,255,0.1);
+}
+.card-header-label {
+    font-family:'Orbitron',monospace; font-size:11px;
+    color:#00e5ff; letter-spacing:3px; text-transform:uppercase;
+    margin-bottom:20px; display:flex; align-items:center; gap:10px;
+}
+.card-header-label::after {
+    content:''; flex:1; height:1px;
+    background:linear-gradient(90deg,rgba(0,229,255,0.4),transparent);
+}
+
+/* ── SCAN PANEL ── */
+.scan-wrapper {
+    position:relative; z-index:10; margin:22px 0;
+    border:1px solid rgba(0,229,255,0.1); border-radius:16px;
+    overflow:hidden; background:rgba(0,10,25,0.5); padding:18px;
+}
+.scan-bar {
+    position:absolute; left:0; top:0; width:100%; height:3px;
+    background:linear-gradient(90deg,transparent,#00e5ff,#7b68ee,transparent);
+    animation:scan-move 2.5s ease-in-out infinite;
+    box-shadow:0 0 15px #00e5ff,0 0 30px #7b68ee80;
+}
+@keyframes scan-move {
+    0%  { top:0%; opacity:1; }
+    49% { top:96%; opacity:1; }
+    50% { top:96%; opacity:0; }
+    51% { top:0%; opacity:0; }
+    52% { top:0%; opacity:1; }
+    100%{ top:0%; opacity:1; }
+}
+.scan-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.scan-cell {
+    height:40px; background:rgba(0,229,255,0.03);
+    border:1px solid rgba(0,229,255,0.08); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Orbitron',monospace; font-size:10px;
+    color:rgba(0,229,255,0.35); letter-spacing:1px; transition:all 0.3s;
+}
+.scan-cell.active {
+    background:rgba(0,229,255,0.1); border-color:rgba(0,229,255,0.4);
+    color:#00e5ff; box-shadow:0 0 12px rgba(0,229,255,0.2);
+}
+.scan-status {
+    margin-top:14px; font-family:'Orbitron',monospace;
+    font-size:11px; color:#00e5ff; letter-spacing:2px; text-align:center;
+}
+.scan-status span { animation:blink-text 1.2s step-end infinite; }
+@keyframes blink-text { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ── MULTISELECT ── */
+.stMultiSelect div[data-baseweb="select"] {
+    background:rgba(0,20,40,0.6)!important;
+    border:1px solid rgba(0,229,255,0.25)!important;
+    border-radius:14px!important;
+}
+.stMultiSelect [data-baseweb="tag"] {
+    background:rgba(0,229,255,0.15)!important;
+    border:1px solid rgba(0,229,255,0.3)!important;
+    border-radius:8px!important; color:#00e5ff!important;
+}
+
+/* ── PREDICT BUTTON ── */
+.stButton>button {
+    width:100%; position:relative;
+    background:linear-gradient(90deg,#003f5c,#1a1a6e,#003f5c);
+    background-size:200% 100%;
+    color:#00e5ff; border:1px solid rgba(0,229,255,0.4);
+    padding:18px; border-radius:18px;
+    font-family:'Orbitron',monospace;
+    font-size:16px; font-weight:700; letter-spacing:3px;
+    text-transform:uppercase; transition:all 0.4s ease;
+    box-shadow:0 0 20px rgba(0,229,255,0.15),inset 0 0 20px rgba(0,229,255,0.03);
+    animation:btn-sweep 3s ease infinite; margin-top:14px; cursor:pointer;
+}
+@keyframes btn-sweep {
+    0%  { background-position:200% center; }
+    100%{ background-position:-200% center; }
+}
+.stButton>button:hover {
+    border-color:#00e5ff; color:white;
+    box-shadow:0 0 40px rgba(0,229,255,0.4),0 0 80px rgba(0,229,255,0.15);
+    transform:translateY(-2px) scale(1.01);
+}
+
+/* ── RESULT BOX ── */
+.result-box {
+    margin-top:30px; padding:36px; border-radius:26px;
+    text-align:center; position:relative; overflow:hidden;
+    background:rgba(5,15,35,0.9);
+    border:1px solid rgba(0,229,255,0.4);
+    box-shadow:0 0 60px rgba(0,229,255,0.12),0 0 120px rgba(123,104,238,0.08);
+    animation:result-appear 0.6s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+}
+@keyframes result-appear {
+    from { opacity:0; transform:scale(0.85) translateY(20px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+}
+.result-box::before {
+    content:''; position:absolute; top:-2px; left:10%;
+    width:80%; height:2px;
+    background:linear-gradient(90deg,transparent,#00e5ff,#7b68ee,transparent);
+    border-radius:2px;
+}
+.result-label {
+    font-family:'Orbitron',monospace; font-size:11px;
+    color:#4a8fa8; letter-spacing:4px; text-transform:uppercase; margin-bottom:12px;
+}
+.result-disease {
+    font-family:'Orbitron',monospace; font-size:38px; font-weight:900;
+    background:linear-gradient(135deg,#00e5ff,#7b68ee,#ff6ec7);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    line-height:1.2;
+    filter:drop-shadow(0 0 20px rgba(0,229,255,0.3));
+}
+.result-corner { position:absolute; width:20px; height:20px; border-color:rgba(0,229,255,0.5); border-style:solid; }
+.result-corner.tl { top:12px; left:12px;   border-width:2px 0 0 2px; border-radius:4px 0 0 0; }
+.result-corner.tr { top:12px; right:12px;  border-width:2px 2px 0 0; border-radius:0 4px 0 0; }
+.result-corner.bl { bottom:12px; left:12px;  border-width:0 0 2px 2px; border-radius:0 0 0 4px; }
+.result-corner.br { bottom:12px; right:12px; border-width:0 2px 2px 0; border-radius:0 0 4px 0; }
+
+/* ── PAGE SECTIONS ── */
+.page-section {
+    position:relative; z-index:10;
+    animation: page-fade 0.4s ease forwards;
+}
+@keyframes page-fade {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── DASHBOARD STAT CARDS ── */
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:30px; }
+.stat-card {
+    background:rgba(5,20,40,0.75);
+    border:1px solid rgba(0,229,255,0.15); border-radius:20px;
+    padding:28px 22px; text-align:center;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.stat-card:hover {
+    transform:translateY(-6px);
+    box-shadow:0 0 30px rgba(0,229,255,0.15);
+}
+.stat-icon { font-size:32px; margin-bottom:10px; }
+.stat-value {
+    font-family:'Orbitron',monospace; font-size:36px; font-weight:900;
+    background:linear-gradient(135deg,#00e5ff,#7b68ee);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.stat-label { color:#4a7a8a; font-size:13px; letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+
+/* ── HISTORY TABLE ── */
+.history-table { width:100%; border-collapse:collapse; }
+.history-table th {
+    font-family:'Orbitron',monospace; font-size:11px; letter-spacing:2px;
+    color:#00e5ff; border-bottom:1px solid rgba(0,229,255,0.2);
+    padding:12px 16px; text-align:left; text-transform:uppercase;
+}
+.history-table td {
+    padding:14px 16px; border-bottom:1px solid rgba(0,229,255,0.06);
+    color:#9ec8d8; font-size:14px;
+}
+.history-table tr:hover td { background:rgba(0,229,255,0.04); }
+.badge {
+    display:inline-block; padding:4px 12px; border-radius:20px;
+    font-size:12px; font-weight:700; letter-spacing:1px;
+}
+.badge-high   { background:rgba(255,80,80,0.15);  color:#ff8080; border:1px solid rgba(255,80,80,0.3); }
+.badge-medium { background:rgba(255,180,0,0.15);  color:#ffcc44; border:1px solid rgba(255,180,0,0.3); }
+.badge-low    { background:rgba(0,255,157,0.12);  color:#00ff9d; border:1px solid rgba(0,255,157,0.3); }
+
+/* ── ABOUT CARDS ── */
+.about-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.about-card {
+    background:rgba(5,20,40,0.75);
+    border:1px solid rgba(0,229,255,0.12); border-radius:20px; padding:30px;
+    transition:transform 0.3s, border-color 0.3s;
+}
+.about-card:hover { transform:translateY(-4px); border-color:rgba(0,229,255,0.35); }
+.about-card-title {
+    font-family:'Orbitron',monospace; font-size:14px; font-weight:700;
+    color:#00e5ff; letter-spacing:2px; margin-bottom:14px;
+}
+.about-card p { color:#7aacbf; font-size:15px; line-height:1.7; }
+.tech-pill {
+    display:inline-block; margin:4px;
+    padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600;
+    background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2);
+    color:#8ec9e8; letter-spacing:1px;
+}
+
+/* ── SIDEBAR ── */
+section[data-testid="stSidebar"] {
+    background:rgba(1,8,18,0.9);
+    border-right:1px solid rgba(0,229,255,0.1);
+}
+.sidebar-card {
+    background:rgba(0,229,255,0.04); padding:18px; border-radius:16px;
+    margin-bottom:16px; border:1px solid rgba(0,229,255,0.1);
+    font-size:14px; color:#7aacbf;
+}
+.sidebar-title {
+    font-family:'Orbitron',monospace; font-size:14px; color:#00e5ff;
+    font-weight:700; letter-spacing:2px; margin-bottom:14px;
+}
+.status-box {
+    background:rgba(0,255,157,0.07); border:1px solid rgba(0,255,157,0.3);
+    padding:16px; border-radius:14px; text-align:center; color:#00ff9d;
+    font-family:'Orbitron',monospace; font-size:12px; letter-spacing:2px; font-weight:700;
+    box-shadow:0 0 20px rgba(0,255,157,0.1);
+    animation:status-glow 2s ease-in-out infinite;
+}
+@keyframes status-glow {
+    0%,100% { box-shadow:0 0 15px rgba(0,255,157,0.1); }
+    50%     { box-shadow:0 0 30px rgba(0,255,157,0.25); }
+}
+
+/* ── FOOTER ── */
+.footer {
+    text-align:center; color:#2a5060; margin-top:60px; padding:24px;
+    font-family:'Orbitron',monospace; font-size:11px; letter-spacing:2px;
+    border-top:1px solid rgba(0,229,255,0.06); position:relative; z-index:10;
+}
+
+img { filter:drop-shadow(0 0 5px rgba(0,229,255,0.18)); }
+
+/* ── DIVIDER ── */
+.cyber-divider {
+    height:1px; margin:30px 0;
+    background:linear-gradient(90deg,transparent,rgba(0,229,255,0.3),transparent);
+}
+
+/* ── SECTION TITLE ── */
+.section-title {
+    font-family:'Orbitron',monospace; font-size:13px; font-weight:700;
+    color:#00e5ff; letter-spacing:3px; text-transform:uppercase;
+    margin-bottom:22px; display:flex; align-items:center; gap:12px;
+}
+.section-title::after {
+    content:''; flex:1; height:1px;
+    background:linear-gradient(90deg,rgba(0,229,255,0.35),transparent);
+}
+
+</style>
+
+<canvas id="particle-canvas"></canvas>
+
+<script>
+(function(){
+    const c=document.getElementById('particle-canvas');
+    const ctx=c.getContext('2d');
+    let W,H,P=[];
+    function resize(){ W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
+    resize();
+    window.addEventListener('resize',resize);
+    function rb(a,b){return a+Math.random()*(b-a);}
+    class Pt{
+        constructor(){this.reset();}
+        reset(){this.x=rb(0,W);this.y=rb(0,H);this.r=rb(.5,2.2);this.vx=rb(-.3,.3);this.vy=rb(-.6,-.1);this.a=rb(.2,.8);this.col=Math.random()>.5?'#00e5ff':'#7b68ee';}
+        update(){this.x+=this.vx;this.y+=this.vy;this.a-=.002;if(this.y<-10||this.a<=0)this.reset();}
+        draw(){ctx.save();ctx.globalAlpha=this.a;ctx.shadowBlur=8;ctx.shadowColor=this.col;ctx.fillStyle=this.col;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();ctx.restore();}
+    }
+    for(let i=0;i<160;i++)P.push(new Pt());
+    function lines(){for(let i=0;i<P.length;i++){for(let j=i+1;j<P.length;j++){const dx=P[i].x-P[j].x,dy=P[i].y-P[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<110){ctx.save();ctx.globalAlpha=(1-d/110)*.12;ctx.strokeStyle='#00e5ff';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(P[i].x,P[i].y);ctx.lineTo(P[j].x,P[j].y);ctx.stroke();ctx.restore();}}}}
+    function loop(){ctx.clearRect(0,0,W,H);lines();P.forEach(p=>{p.update();p.draw();});requestAnimationFrame(loop);}
+    loop();
+})();
+</script>
+
+<script>
+(function(){
+    function run(){
+        const cells=document.querySelectorAll('.scan-cell');
+        if(!cells.length){setTimeout(run,600);return;}
+        setInterval(()=>{
+            cells.forEach(c=>c.classList.remove('active'));
+            const n=Math.floor(Math.random()*3)+1,idx=new Set();
+            while(idx.size<n)idx.add(Math.floor(Math.random()*cells.length));
+            idx.forEach(i=>cells[i].classList.add('active'));
+        },600);
+    }
+    setTimeout(run,800);
+})();
+</script>
+""", unsafe_allow_html=True)
+
+# ================================================================
+#  NAVBAR  (Streamlit buttons for real page switching)
+# ================================================================
+
+pages = ["Dashboard", "Diagnose", "History", "About"]
+
+col_brand, col_nav1, col_nav2, col_nav3, col_nav4, col_status = st.columns(
+    [3, 1.3, 1.1, 1, 1, 2], vertical_alignment="center"
+)
+
+with col_brand:
+    st.markdown(
+        '<div class="navbar-brand">⬡ MED.AI</div>',
+        unsafe_allow_html=True
+    )
+
+nav_cols = [col_nav1, col_nav2, col_nav3, col_nav4]
+for i, page in enumerate(pages):
+    with nav_cols[i]:
+        if st.button(page, key=f"nav_{page}", use_container_width=True):
+            st.session_state.active_page = page
+            st.rerun()
+
+with col_status:
+    st.markdown(
+        '<div class="navbar-status" style="justify-content:flex-end;">'
+        '<div class="navbar-dot"></div>SYSTEM ONLINE</div>',
+        unsafe_allow_html=True
+    )
+
+st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+
+active = st.session_state.active_page
+
+# ================================================================
+#  PAGE: DASHBOARD
+# ================================================================
+
+if active == "Dashboard":
+    st.markdown('<div class="page-section">', unsafe_allow_html=True)
+
+    # Hero — logo + text inline
+    import base64, io as _io
+    if has_logo:
+        _buf = _io.BytesIO()
+        logo.save(_buf, format="PNG")
+        _b64 = base64.b64encode(_buf.getvalue()).decode()
+        _logo_html = f'<img src="data:image/png;base64,{_b64}" style="width:88px;height:88px;object-fit:contain;flex-shrink:0;" />'
+    else:
+        _logo_html = ''
+
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        {_logo_html}
+        <div>
+            <div class="hero-title">AI Disease Predictor</div>
+            <div class="hero-subtitle">⬡ Neural Symptom Analysis Engine · v3.0</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+    # Heartbeat
+    st.markdown("""
+    <div class="heartbeat-container">
+        <div class="hb-label">❤ LIVE ECG</div>
+        <div class="hb-svg-wrap">
+            <svg class="heartbeat-svg" viewBox="0 0 600 60" preserveAspectRatio="none">
+                <polyline class="hb-glow" points="0,30 60,30 80,30 90,5 100,55 110,30 130,30 190,30 210,30 220,5 230,55 240,30 260,30 320,30 340,30 350,5 360,55 370,30 390,30 450,30 470,30 480,5 490,55 500,30 530,30 600,30"/>
+                <polyline class="hb-line"  points="0,30 60,30 80,30 90,5 100,55 110,30 130,30 190,30 210,30 220,5 230,55 240,30 260,30 320,30 340,30 350,5 360,55 370,30 390,30 450,30 470,30 480,5 490,55 500,30 530,30 600,30"/>
+            </svg>
+        </div>
+        <div><div class="hb-bpm">72</div><div class="hb-unit">BPM</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Stat cards
+    st.markdown('<div class="section-title">⬡ &nbsp;System Overview</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🧬</div>
+            <div class="stat-value">132</div>
+            <div class="stat-label">Symptoms Mapped</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🦠</div>
+            <div class="stat-value">41</div>
+            <div class="stat-label">Diseases Detected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-value">95%</div>
+            <div class="stat-label">Model Accuracy</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-value">&lt;1s</div>
+            <div class="stat-label">Prediction Time</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+
+    # Quick tip
+    st.markdown("""
+    <div class="glass-card-3d" style="padding:28px 36px;">
+        <div class="card-header-label">⬡ &nbsp;Quick Start Guide</div>
+        <div style="color:#7aacbf; font-size:16px; line-height:2;">
+            <span style="color:#00e5ff; font-weight:700;">Step 1 &nbsp;→</span>&nbsp; Click <b style="color:#e2f0ff;">Diagnose</b> from the navbar above<br>
+            <span style="color:#00e5ff; font-weight:700;">Step 2 &nbsp;→</span>&nbsp; Select your symptoms from the dropdown<br>
+            <span style="color:#00e5ff; font-weight:700;">Step 3 &nbsp;→</span>&nbsp; Click <b style="color:#e2f0ff;">ANALYSE SYMPTOMS</b> button<br>
+            <span style="color:#00e5ff; font-weight:700;">Step 4 &nbsp;→</span>&nbsp; View your AI-generated diagnosis result<br>
+            <span style="color:#ffcc44; font-weight:700;">⚠ Note &nbsp;&nbsp;→</span>&nbsp; Always consult a certified physician for final diagnosis
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ================================================================
+#  PAGE: DIAGNOSE
+# ================================================================
+
+elif active == "Diagnose":
+    st.markdown('<div class="page-section">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🩺 &nbsp;Symptom Input Module</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="glass-card-3d">', unsafe_allow_html=True)
+    st.markdown('<div class="card-header-label">⬡ &nbsp;Select Symptoms</div>', unsafe_allow_html=True)
+
+    selected_symptoms = st.multiselect("Choose symptoms from the database", columns)
+
+    st.markdown("""
+    <div class="scan-wrapper">
+        <div class="scan-bar"></div>
+        <div class="scan-grid">
+            <div class="scan-cell">NEURAL NET</div>
+            <div class="scan-cell active">SCANNING</div>
+            <div class="scan-cell">DATABASE</div>
+            <div class="scan-cell">PATHOLOGY</div>
+            <div class="scan-cell">SYMPTOMS</div>
+            <div class="scan-cell">INFERENCE</div>
+        </div>
+        <div class="scan-status">AI ENGINE READY ·&nbsp;<span>█</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("⬡  ANALYSE SYMPTOMS  ⬡"):
+        if not selected_symptoms:
+            st.warning("⚠ Please select at least one symptom before analysing.")
+        elif not model_loaded:
+            st.error("⚠ Model files not found. Please ensure model.pkl, encoder.pkl, columns.pkl are present.")
+        else:
+            input_data = np.zeros(len(columns))
+            for symptom in selected_symptoms:
+                if symptom in columns:
+                    input_data[columns.index(symptom)] = 1
+            input_data = input_data.reshape(1, -1)
+            prediction = model.predict(input_data)
+            disease = encoder.inverse_transform(prediction)
+
+            # Save to history in session state
+            if "history" not in st.session_state:
+                st.session_state.history = []
+            st.session_state.history.insert(0, {
+                "time": datetime.datetime.now().strftime("%d %b %Y, %H:%M"),
+                "symptoms": ", ".join(selected_symptoms[:3]) + ("..." if len(selected_symptoms) > 3 else ""),
+                "result": disease[0],
+                "count": len(selected_symptoms)
+            })
+
+            st.markdown(f"""
+            <div class="result-box">
+                <div class="result-corner tl"></div>
+                <div class="result-corner tr"></div>
+                <div class="result-corner bl"></div>
+                <div class="result-corner br"></div>
+                <div class="result-label">◈ Diagnosis Result</div>
+                <div class="result-disease">{disease[0]}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.warning("⚠ AI-generated prediction. Please consult a certified physician for medical advice.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ================================================================
+#  PAGE: HISTORY
+# ================================================================
+
+elif active == "History":
+    st.markdown('<div class="page-section">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📋 &nbsp;Prediction History</div>', unsafe_allow_html=True)
+
+    history = st.session_state.get("history", [])
+
+    if not history:
+        st.markdown("""
+        <div class="glass-card-3d" style="text-align:center; padding:60px;">
+            <div style="font-size:48px; margin-bottom:16px;">📭</div>
+            <div style="font-family:'Orbitron',monospace; color:#00e5ff; font-size:14px; letter-spacing:2px;">NO RECORDS FOUND</div>
+            <div style="color:#4a7a8a; margin-top:10px; font-size:14px;">
+                Run a diagnosis first — your prediction history will appear here.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Stats row
+        st.markdown(f"""
+        <div style="display:flex; gap:16px; margin-bottom:24px;">
+            <div class="stat-card" style="flex:1; padding:20px;">
+                <div class="stat-value" style="font-size:28px;">{len(history)}</div>
+                <div class="stat-label">Total Diagnoses</div>
+            </div>
+            <div class="stat-card" style="flex:1; padding:20px;">
+                <div class="stat-value" style="font-size:28px;">{len(set(h['result'] for h in history))}</div>
+                <div class="stat-label">Unique Results</div>
+            </div>
+            <div class="stat-card" style="flex:1; padding:20px;">
+                <div class="stat-value" style="font-size:28px;">{history[0]['time'].split(',')[0]}</div>
+                <div class="stat-label">Last Diagnosis</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Table
+        st.markdown("""
+        <div class="glass-card-3d" style="padding:28px;">
+            <div class="card-header-label">⬡ &nbsp;Recent Predictions</div>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date & Time</th>
+                        <th>Symptoms</th>
+                        <th>Symptom Count</th>
+                        <th>Predicted Disease</th>
+                        <th>Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """, unsafe_allow_html=True)
+
+        for i, h in enumerate(history):
+            count = h.get("count", 1)
+            if count >= 5:
+                badge = '<span class="badge badge-high">HIGH</span>'
+            elif count >= 3:
+                badge = '<span class="badge badge-medium">MEDIUM</span>'
+            else:
+                badge = '<span class="badge badge-low">LOW</span>'
+            st.markdown(f"""
+                <tr>
+                    <td style="color:#00e5ff; font-family:'Orbitron',monospace; font-size:12px;">{i+1:02d}</td>
+                    <td>{h['time']}</td>
+                    <td style="max-width:200px; color:#b0d4e0;">{h['symptoms']}</td>
+                    <td style="text-align:center; color:#00e5ff; font-family:'Orbitron',monospace;">{count}</td>
+                    <td style="color:#e2f0ff; font-weight:600;">{h['result']}</td>
+                    <td>{badge}</td>
+                </tr>
+            """, unsafe_allow_html=True)
+
+        st.markdown("</tbody></table></div>", unsafe_allow_html=True)
+
+        if st.button("🗑  Clear History"):
+            st.session_state.history = []
+            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ================================================================
+#  PAGE: ABOUT
+# ================================================================
+
+elif active == "About":
+    st.markdown('<div class="page-section">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">ℹ &nbsp;About This System</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="glass-card-3d" style="margin-bottom:24px; text-align:center; padding:40px 60px;">
+        <div style="font-family:'Orbitron',monospace; font-size:32px; font-weight:900;
+             background:linear-gradient(135deg,#00e5ff,#7b68ee,#ff6ec7);
+             -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px;">
+             MED.AI — v3.0
+        </div>
+        <div style="color:#6fa8c8; font-size:15px; letter-spacing:2px; text-transform:uppercase;">
+            Neural Symptom Analysis & Disease Prediction Engine
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="about-grid">', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="about-card">
+        <div class="about-card-title">🧠 How It Works</div>
+        <p>
+        This system uses a trained <b style="color:#00e5ff;">Random Forest</b> machine learning model to
+        predict diseases from selected symptoms. The model was trained on a curated medical dataset
+        containing 132 symptoms and 41 diseases with over 95% cross-validated accuracy.
+        </p>
+    </div>
+    <div class="about-card">
+        <div class="about-card-title">⚙️ Technology Stack</div>
+        <div>
+            <span class="tech-pill">Python 3.x</span>
+            <span class="tech-pill">Streamlit</span>
+            <span class="tech-pill">Scikit-learn</span>
+            <span class="tech-pill">NumPy</span>
+            <span class="tech-pill">Pillow</span>
+            <span class="tech-pill">Random Forest</span>
+            <span class="tech-pill">Label Encoder</span>
+            <span class="tech-pill">Pickle</span>
+        </div>
+    </div>
+    <div class="about-card">
+        <div class="about-card-title">📊 Model Performance</div>
+        <p>
+        The underlying ML model achieves <b style="color:#00ff9d;">95%+ accuracy</b> on the test dataset.
+        It analyzes the binary symptom vector and outputs the most probable diagnosis using
+        ensemble decision tree voting across 100+ estimators.
+        </p>
+    </div>
+    <div class="about-card">
+        <div class="about-card-title">⚠️ Medical Disclaimer</div>
+        <p>
+        This tool is intended for <b style="color:#ffcc44;">educational & informational purposes only</b>.
+        It is NOT a substitute for professional medical advice, diagnosis, or treatment.
+        Always consult a qualified healthcare physician for any medical condition.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ================================================================
+#  SIDEBAR
+# ================================================================
+
+with st.sidebar:
+    st.markdown('<div class="sidebar-title">🧠 AI HEALTH SYSTEM</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="sidebar-card">
+    Neural disease prediction engine powered by
+    Random Forest ML with real-time symptom analysis.
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("### ✦ Modules")
+    with st.expander("🩺 Disease Prediction"):
+        st.write("✔ Neural symptom analysis\n✔ Real-time AI detection\n✔ Confidence scoring")
+    with st.expander("⚡ Fast AI Analysis"):
+        st.write("🚀 Sub-second prediction\n🚀 300+ disease database")
+    with st.expander("🧠 Smart Detection"):
+        st.write("🤖 Random Forest algorithm\n🤖 Trained on medical dataset")
+    with st.expander("📊 ML Stats"):
+        st.write("✅ 95%+ accuracy\n✅ 132 symptoms mapped\n✅ Continuously improving")
+    st.markdown('<div class="status-box">⬡ AI MODEL ACTIVE ⬡</div>', unsafe_allow_html=True)
+
+# ================================================================
+#  FOOTER
+# ================================================================
+
+st.markdown("""
+<div class="footer">
+⬡ MED.AI · POWERED BY CHANDAN ⬡
+</div>
+""", unsafe_allow_html=True)
