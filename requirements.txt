@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 streamlit
 numpy
 pandas
 scikit-learn
+=======
+streamlit
+numpy
+pandas
+scikit-learn
+>>>>>>> 14d39f436e9cf6e7188ba256465f76d432fe2f09
 pillow

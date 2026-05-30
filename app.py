@@ -162,6 +162,18 @@ div[data-testid="stHorizontalBlock"] .stButton > button:hover {
     transform: none !important;
 }
 
+@media (max-width: 768px) {
+    /* On mobile, navbar brand + status hide, buttons font smaller */
+    .navbar-brand  { font-size: 15px !important; letter-spacing: 1px !important; }
+    .navbar-status { display: none !important; }
+    div[data-testid="stHorizontalBlock"] .stButton > button {
+        font-size: 11px !important;
+        padding: 7px 4px !important;
+        letter-spacing: 0.5px !important;
+        height: 36px !important;
+    }
+}
+
 /* ── HERO ── */
 .hero-wrapper { position:relative; z-index:10; margin-bottom:36px; }
 .hero-title {
@@ -465,6 +477,111 @@ section[data-testid="stSidebar"] {
 
 img { filter:drop-shadow(0 0 5px rgba(0,229,255,0.18)); }
 
+/* ══════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════ */
+
+@media (max-width: 768px) {
+
+    /* Hero title smaller */
+    .hero-title {
+        font-size: 28px !important;
+        letter-spacing: 1px !important;
+    }
+    .hero-subtitle {
+        font-size: 12px !important;
+        letter-spacing: 1.5px !important;
+    }
+
+    /* Heartbeat — hide label, shrink BPM */
+    .hb-label { display: none !important; }
+    .hb-bpm   { font-size: 20px !important; }
+    .heartbeat-container { padding: 14px 16px !important; gap: 10px !important; }
+
+    /* Stat grid: 2 columns on mobile */
+    .stat-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px !important;
+    }
+    .stat-value { font-size: 26px !important; }
+    .stat-label { font-size: 11px !important; letter-spacing: 1px !important; }
+    .stat-card  { padding: 18px 12px !important; border-radius: 14px !important; }
+
+    /* History stats row: stack vertically */
+    .history-stats-row {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    /* History TABLE → CARD layout on mobile */
+    .history-table thead { display: none !important; }
+    .history-table, .history-table tbody,
+    .history-table tr, .history-table td {
+        display: block !important;
+        width: 100% !important;
+    }
+    .history-table tr {
+        background: rgba(0,229,255,0.03);
+        border: 1px solid rgba(0,229,255,0.1);
+        border-radius: 14px !important;
+        margin-bottom: 12px !important;
+        padding: 12px 16px !important;
+    }
+    .history-table td {
+        padding: 5px 0 !important;
+        border: none !important;
+        font-size: 13px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    .history-table td::before {
+        content: attr(data-label);
+        font-family: 'Orbitron', monospace;
+        font-size: 10px;
+        color: #00e5ff;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        min-width: 80px;
+        flex-shrink: 0;
+    }
+
+    /* Glass cards: reduce padding */
+    .glass-card-3d {
+        padding: 20px 16px !important;
+        border-radius: 18px !important;
+    }
+    .glass-card-3d:hover {
+        transform: none !important;
+    }
+
+    /* About grid: 1 column */
+    .about-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Result disease text smaller */
+    .result-disease { font-size: 24px !important; }
+    .result-box { padding: 24px 16px !important; }
+
+    /* Scan grid: 2 cols on mobile */
+    .scan-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Disable 3D hover transforms on mobile (touch unfriendly) */
+    .stat-card:hover { transform: none !important; }
+    .about-card:hover { transform: none !important; }
+}
+
+@media (max-width: 480px) {
+    .hero-title  { font-size: 22px !important; }
+    .stat-grid   { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+    .stat-value  { font-size: 22px !important; }
+    .result-disease { font-size: 20px !important; }
+    .hb-bpm { font-size: 18px !important; }
+}
+
 /* ── DIVIDER ── */
 .cyber-divider {
     height:1px; margin:30px 0;
@@ -480,6 +597,117 @@ img { filter:drop-shadow(0 0 5px rgba(0,229,255,0.18)); }
 .section-title::after {
     content:''; flex:1; height:1px;
     background:linear-gradient(90deg,rgba(0,229,255,0.35),transparent);
+}
+
+/* ══════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════ */
+@media (max-width: 768px) {
+
+    /* Hero title smaller */
+    .hero-title {
+        font-size: 28px !important;
+        letter-spacing: 1px !important;
+    }
+    .hero-subtitle {
+        font-size: 12px !important;
+        letter-spacing: 1.5px !important;
+    }
+
+    /* Hero logo+text stack vertically on very small screens */
+    .hero-flex {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    /* Heartbeat — hide label and BPM on tiny screens, keep ECG */
+    .heartbeat-container {
+        padding: 14px 16px !important;
+        gap: 10px !important;
+    }
+    .hb-label { display: none !important; }
+    .hb-bpm { font-size: 20px !important; }
+    svg.heartbeat-svg { height: 44px !important; }
+
+    /* Stat grid — 2 columns on mobile */
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+    .stat-card { padding: 18px 12px !important; border-radius: 14px !important; }
+    .stat-icon { font-size: 24px !important; }
+    .stat-value { font-size: 26px !important; }
+    .stat-label { font-size: 11px !important; letter-spacing: 1px !important; }
+
+    /* Quick start guide text */
+    .glass-card-3d { padding: 20px 16px !important; border-radius: 18px !important; }
+
+    /* History stats row — stack vertically */
+    .history-stats-row {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    /* History table — convert to card list on mobile */
+    .history-table thead { display: none !important; }
+    .history-table, .history-table tbody,
+    .history-table tr, .history-table td {
+        display: block !important;
+        width: 100% !important;
+    }
+    .history-table tr {
+        margin-bottom: 14px !important;
+        background: rgba(0,229,255,0.03) !important;
+        border: 1px solid rgba(0,229,255,0.1) !important;
+        border-radius: 14px !important;
+        padding: 12px 14px !important;
+    }
+    .history-table td {
+        padding: 5px 0 !important;
+        border: none !important;
+        font-size: 13px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+    .history-table td::before {
+        content: attr(data-label) !important;
+        font-family: 'Orbitron', monospace !important;
+        font-size: 9px !important;
+        color: rgba(0,229,255,0.5) !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+        flex-shrink: 0 !important;
+        margin-right: 8px !important;
+    }
+
+    /* About grid — single column */
+    .about-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+    .about-card { padding: 20px !important; }
+
+    /* Result disease name smaller */
+    .result-disease { font-size: 26px !important; }
+
+    /* Scan grid — 2 cols on mobile */
+    .scan-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Section title smaller */
+    .section-title {
+        font-size: 11px !important;
+        letter-spacing: 2px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-title { font-size: 22px !important; }
+    .stat-grid  { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+    .stat-value { font-size: 22px !important; }
 }
 
 </style>
@@ -577,7 +805,7 @@ if active == "Dashboard":
         _logo_html = ''
 
     st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+    <div class="hero-flex" style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
         {_logo_html}
         <div>
             <div class="hero-title">AI Disease Predictor</div>
@@ -738,7 +966,7 @@ elif active == "History":
     else:
         # Stats row
         st.markdown(f"""
-        <div style="display:flex; gap:16px; margin-bottom:24px;">
+        <div class="history-stats-row" style="display:flex; gap:16px; margin-bottom:24px;">
             <div class="stat-card" style="flex:1; padding:20px;">
                 <div class="stat-value" style="font-size:28px;">{len(history)}</div>
                 <div class="stat-label">Total Diagnoses</div>
@@ -748,7 +976,7 @@ elif active == "History":
                 <div class="stat-label">Unique Results</div>
             </div>
             <div class="stat-card" style="flex:1; padding:20px;">
-                <div class="stat-value" style="font-size:28px;">{history[0]['time'].split(',')[0]}</div>
+                <div class="stat-value" style="font-size:22px;">{history[0]['time'].split(',')[0]}</div>
                 <div class="stat-label">Last Diagnosis</div>
             </div>
         </div>
@@ -782,11 +1010,11 @@ elif active == "History":
                 badge = '<span class="badge badge-low">LOW</span>'
             st.markdown(f"""
                 <tr>
-                    <td style="color:#00e5ff; font-family:'Orbitron',monospace; font-size:12px;">{i+1:02d}</td>
-                    <td>{h['time']}</td>
-                    <td style="max-width:200px; color:#b0d4e0;">{h['symptoms']}</td>
-                    <td style="text-align:center; color:#00e5ff; font-family:'Orbitron',monospace;">{count}</td>
-                    <td style="color:#e2f0ff; font-weight:600;">{h['result']}</td>
+                    <td data-label="No" style="color:#00e5ff; font-family:'Orbitron',monospace; font-size:12px;">{i+1:02d}</td>
+                    <td data-label="Date">{h['time']}</td>
+                    <td data-label="Symptoms" style="color:#b0d4e0; word-break:break-word;">{h['symptoms']}</td>
+                    <td data-label="Count" style="color:#00e5ff; font-family:'Orbitron',monospace;">{count}</td>
+                    <td data-label="Disease" style="color:#e2f0ff; font-weight:600;">{h['result']}</td>
                     <td>{badge}</td>
                 </tr>
             """, unsafe_allow_html=True)
@@ -861,7 +1089,6 @@ elif active == "About":
         </p>
     </div>
     """, unsafe_allow_html=True)
-
 
 # ================================================================
 #  SIDEBAR
