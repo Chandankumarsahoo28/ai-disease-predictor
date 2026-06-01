@@ -965,24 +965,62 @@ elif active == "History":
         </div>
         """, unsafe_allow_html=True)
 
-        # Table
+        # Table CSS — separate call so Streamlit renders it properly
         st.markdown("""
-        <div class="glass-card-3d" style="padding:28px;">
-            <div class="card-header-label">⬡ &nbsp;Recent Predictions</div>
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Date & Time</th>
-                        <th>Symptoms</th>
-                        <th>Symptom Count</th>
-                        <th>Predicted Disease</th>
-                        <th>Priority</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <style>
+        .hist-table { width:100%; border-collapse:collapse; font-family:'Rajdhani',sans-serif; }
+        .hist-table thead tr { border-bottom:1px solid rgba(0,229,255,0.25); }
+        .hist-table th {
+            padding:12px 14px; text-align:left;
+            font-family:'Orbitron',monospace; font-size:10px;
+            color:#00e5ff; letter-spacing:2px; font-weight:700;
+        }
+        .hist-table tbody tr {
+            border-bottom:1px solid rgba(0,229,255,0.07);
+            transition:background 0.2s;
+        }
+        .hist-table tbody tr:hover { background:rgba(0,229,255,0.05); }
+        .hist-table tbody td {
+            padding:14px 14px; color:#9ec8d8;
+            font-size:15px; vertical-align:middle;
+        }
+        .hist-wrap {
+            background:rgba(5,20,40,0.7);
+            border:1px solid rgba(0,229,255,0.2);
+            border-radius:24px; padding:28px 24px;
+            backdrop-filter:blur(20px); overflow-x:auto;
+        }
+        .hist-header {
+            font-family:'Orbitron',monospace; font-size:11px;
+            color:#00e5ff; letter-spacing:3px; text-transform:uppercase;
+            margin-bottom:20px;
+        }
+        @media (max-width:768px) {
+            .hist-table thead { display:none; }
+            .hist-table, .hist-table tbody,
+            .hist-table tr, .hist-table td { display:block; width:100%; box-sizing:border-box; }
+            .hist-table tr {
+                background:rgba(0,229,255,0.04);
+                border:1px solid rgba(0,229,255,0.12) !important;
+                border-radius:16px; margin-bottom:14px; padding:14px 16px;
+            }
+            .hist-table td {
+                display:flex; align-items:center; gap:10px;
+                padding:7px 0; border:none !important;
+                font-size:14px; color:#b0d4e0;
+            }
+            .hist-table td::before {
+                content:attr(data-label);
+                font-family:'Orbitron',monospace; font-size:9px;
+                color:#00e5ff; letter-spacing:1.5px;
+                min-width:72px; flex-shrink:0;
+            }
+        }
+        </style>
         """, unsafe_allow_html=True)
 
+        # Table — build entirely in one string
+        rows_html = ""
         for i, h in enumerate(history):
             count = h.get("count", 1)
             if count >= 5:
@@ -991,18 +1029,34 @@ elif active == "History":
                 badge = '<span class="badge badge-medium">MEDIUM</span>'
             else:
                 badge = '<span class="badge badge-low">LOW</span>'
-            st.markdown(f"""
-                <tr>
-                    <td data-label="No" style="color:#00e5ff; font-family:'Orbitron',monospace; font-size:12px;">{i+1:02d}</td>
-                    <td data-label="Date">{h['time']}</td>
-                    <td data-label="Symptoms" style="color:#b0d4e0; word-break:break-word;">{h['symptoms']}</td>
-                    <td data-label="Count" style="color:#00e5ff; font-family:'Orbitron',monospace;">{count}</td>
-                    <td data-label="Disease" style="color:#e2f0ff; font-weight:600;">{h['result']}</td>
-                    <td>{badge}</td>
-                </tr>
-            """, unsafe_allow_html=True)
+            rows_html += f"""
+            <tr>
+                <td data-label="NO"><span style="color:#00e5ff;font-family:'Orbitron',monospace;font-size:13px;">{i+1:02d}</span></td>
+                <td data-label="DATE" style="white-space:nowrap;">{h['time']}</td>
+                <td data-label="SYMPTOMS" style="color:#b0d4e0;">{h['symptoms']}</td>
+                <td data-label="COUNT"><span style="color:#00e5ff;font-family:'Orbitron',monospace;font-size:15px;font-weight:700;">{count}</span></td>
+                <td data-label="DISEASE"><span style="color:#e2f0ff;font-weight:700;">{h['result']}</span></td>
+                <td data-label="PRIORITY">{badge}</td>
+            </tr>"""
 
-        st.markdown("</tbody></table></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="hist-wrap">
+            <div class="hist-header">⬡ &nbsp;Recent Predictions</div>
+            <table class="hist-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>DATE &amp; TIME</th>
+                        <th>SYMPTOMS</th>
+                        <th>COUNT</th>
+                        <th>DISEASE</th>
+                        <th>PRIORITY</th>
+                    </tr>
+                </thead>
+                <tbody>{rows_html}</tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
 
         if st.button("🗑  Clear History"):
             st.session_state.history = []
