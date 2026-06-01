@@ -903,8 +903,10 @@ elif active == "Diagnose":
             # Save to history in session state
             if "history" not in st.session_state:
                 st.session_state.history = []
+            ist_offset = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+            ist_time = datetime.datetime.now(ist_offset)
             st.session_state.history.insert(0, {
-                "time": datetime.datetime.now().strftime("%d %b %Y, %H:%M"),
+                "time": ist_time.strftime("%d %b %Y, %I:%M %p"),
                 "symptoms": ", ".join(selected_symptoms[:3]) + ("..." if len(selected_symptoms) > 3 else ""),
                 "result": disease[0],
                 "count": len(selected_symptoms)
