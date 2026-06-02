@@ -39,13 +39,14 @@ try:
     with open("model.pkl",   "rb") as f: model   = pickle.load(f)
     with open("encoder.pkl", "rb") as f: encoder = pickle.load(f)
     with open("columns.pkl", "rb") as f: columns = pickle.load(f)
-    # Remove invalid/unnamed columns
-    columns = [c for c in columns if c and not str(c).startswith("Unnamed")]
+    # Keep all columns for model input, but filter display list for dropdown
+    display_columns = [c for c in columns if c and not str(c).startswith("Unnamed")]
     model_loaded = True
 except Exception:
     model_loaded = False
     columns = ["fever","cough","headache","fatigue","nausea","vomiting",
                "chest pain","shortness of breath","dizziness","rash"]
+    display_columns = columns
 
 # ================================================================
 #  FULL CSS
@@ -869,7 +870,7 @@ elif active == "Diagnose":
     st.markdown('<div class="page-section">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">🩺 &nbsp;Symptom Input Module</div>', unsafe_allow_html=True)
 
-    selected_symptoms = st.multiselect("Choose symptoms from the database", columns)
+    selected_symptoms = st.multiselect("Choose symptoms from the database", display_columns)
 
     st.markdown("""
     <div class="scan-wrapper">
@@ -901,8 +902,73 @@ elif active == "Diagnose":
             input_data = input_data.reshape(1, -1)
             prediction = model.predict(input_data)
             disease = encoder.inverse_transform(prediction)
+            disease_name = disease[0]
 
-            # Save to history in session state
+            # Confidence score
+            proba = model.predict_proba(input_data)[0]
+            confidence = round(max(proba) * 100, 1)
+            if confidence >= 80:
+                conf_color = "#00ff9d"
+                conf_label = "HIGH"
+            elif confidence >= 50:
+                conf_color = "#ffcc44"
+                conf_label = "MEDIUM"
+            else:
+                conf_color = "#ff6b6b"
+                conf_label = "LOW"
+
+            # Disease info database
+            disease_db = {
+                "Fungal infection":      {"desc": "A skin or nail infection caused by fungi. Common in warm, moist areas of the body.", "doctor": "Dermatologist", "icon": "🔬"},
+                "Allergy":               {"desc": "Immune system reaction to foreign substances like pollen, food, or pet dander.", "doctor": "Allergist / Immunologist", "icon": "🤧"},
+                "GERD":                  {"desc": "Gastroesophageal reflux disease — stomach acid frequently flows back into the esophagus.", "doctor": "Gastroenterologist", "icon": "🫁"},
+                "Chronic cholestasis":   {"desc": "Reduced or blocked bile flow from the liver, causing buildup of bile acids.", "doctor": "Gastroenterologist / Hepatologist", "icon": "🫀"},
+                "Drug Reaction":         {"desc": "An adverse reaction to a medication, ranging from mild rash to severe anaphylaxis.", "doctor": "General Physician / Allergist", "icon": "💊"},
+                "Peptic ulcer disease":  {"desc": "Sores that develop on the lining of the stomach, small intestine or esophagus.", "doctor": "Gastroenterologist", "icon": "🫃"},
+                "AIDS":                  {"desc": "Advanced stage of HIV infection that severely damages the immune system.", "doctor": "Infectious Disease Specialist", "icon": "🧬"},
+                "Diabetes":              {"desc": "A chronic condition affecting how the body processes blood sugar (glucose).", "doctor": "Endocrinologist / Diabetologist", "icon": "🩸"},
+                "Gastroenteritis":       {"desc": "Inflammation of the stomach and intestines, typically from viral or bacterial infection.", "doctor": "Gastroenterologist", "icon": "🦠"},
+                "Bronchial Asthma":      {"desc": "Chronic lung disease causing airways to narrow, swell and produce extra mucus.", "doctor": "Pulmonologist", "icon": "🫁"},
+                "Hypertension":          {"desc": "High blood pressure — a long-term force of blood against artery walls that is too high.", "doctor": "Cardiologist", "icon": "❤️"},
+                "Migraine":              {"desc": "A neurological condition causing intense, debilitating headaches often with nausea.", "doctor": "Neurologist", "icon": "🧠"},
+                "Cervical spondylosis":  {"desc": "Age-related wear and tear of spinal disks in the neck causing neck pain.", "doctor": "Orthopedic / Neurologist", "icon": "🦴"},
+                "Paralysis (brain hemorrhage)": {"desc": "Loss of muscle function due to bleeding in the brain damaging nerve pathways.", "doctor": "Neurologist / Neurosurgeon", "icon": "🧠"},
+                "Jaundice":              {"desc": "Yellowing of the skin and eyes caused by high bilirubin levels in the blood.", "doctor": "Hepatologist / Gastroenterologist", "icon": "🫀"},
+                "Malaria":               {"desc": "A mosquito-borne infectious disease caused by Plasmodium parasites.", "doctor": "Infectious Disease Specialist", "icon": "🦟"},
+                "Chicken pox":           {"desc": "Highly contagious viral infection causing itchy rash with fluid-filled blisters.", "doctor": "General Physician / Dermatologist", "icon": "🔴"},
+                "Dengue":                {"desc": "Mosquito-borne viral disease causing high fever, severe headache and joint pain.", "doctor": "Infectious Disease Specialist", "icon": "🦟"},
+                "Typhoid":               {"desc": "Bacterial infection caused by Salmonella typhi, spread through contaminated food/water.", "doctor": "Infectious Disease Specialist", "icon": "🦠"},
+                "Hepatitis A":           {"desc": "Highly contagious liver infection caused by the hepatitis A virus.", "doctor": "Hepatologist / Gastroenterologist", "icon": "🫀"},
+                "Hepatitis B":           {"desc": "Serious liver infection caused by hepatitis B virus, can become chronic.", "doctor": "Hepatologist", "icon": "🫀"},
+                "Hepatitis C":           {"desc": "Viral infection that causes liver inflammation, sometimes leading to serious damage.", "doctor": "Hepatologist", "icon": "🫀"},
+                "Hepatitis D":           {"desc": "Liver infection that only occurs in people already infected with Hepatitis B.", "doctor": "Hepatologist", "icon": "🫀"},
+                "Hepatitis E":           {"desc": "Liver disease caused by hepatitis E virus, mainly spread through contaminated water.", "doctor": "Hepatologist / Gastroenterologist", "icon": "🫀"},
+                "Alcoholic hepatitis":   {"desc": "Liver inflammation caused by drinking too much alcohol over time.", "doctor": "Hepatologist", "icon": "🍺"},
+                "Tuberculosis":          {"desc": "Serious bacterial infection mainly affecting the lungs, spread through air droplets.", "doctor": "Pulmonologist / Infectious Disease Specialist", "icon": "🫁"},
+                "Common Cold":           {"desc": "A viral infection of the upper respiratory tract causing runny nose and sore throat.", "doctor": "General Physician", "icon": "🤧"},
+                "Pneumonia":             {"desc": "Infection that inflames air sacs in one or both lungs, which may fill with fluid.", "doctor": "Pulmonologist", "icon": "🫁"},
+                "Dimorphic hemorrhoids(piles)": {"desc": "Swollen veins in the rectum or anus causing discomfort and bleeding.", "doctor": "Proctologist / General Surgeon", "icon": "🩺"},
+                "Heart attack":          {"desc": "Occurs when blood flow to the heart is blocked, damaging heart muscle.", "doctor": "Cardiologist", "icon": "❤️"},
+                "Varicose veins":        {"desc": "Enlarged, twisted veins usually in the legs caused by weakened vein walls.", "doctor": "Vascular Surgeon", "icon": "🦵"},
+                "Hypothyroidism":        {"desc": "Underactive thyroid gland that does not produce enough thyroid hormone.", "doctor": "Endocrinologist", "icon": "🦋"},
+                "Hyperthyroidism":       {"desc": "Overactive thyroid that produces too much thyroxine, speeding up metabolism.", "doctor": "Endocrinologist", "icon": "🦋"},
+                "Hypoglycemia":          {"desc": "Low blood sugar level that can cause shakiness, confusion and in severe cases, seizures.", "doctor": "Endocrinologist / Diabetologist", "icon": "🩸"},
+                "Osteoarthritis":        {"desc": "Degenerative joint disease where cartilage breaks down causing pain and stiffness.", "doctor": "Orthopedic / Rheumatologist", "icon": "🦴"},
+                "Arthritis":             {"desc": "Inflammation of one or more joints causing pain, swelling and stiffness.", "doctor": "Rheumatologist", "icon": "🦴"},
+                "(Vertigo) Paroxysmal Positional Vertigo": {"desc": "Inner ear condition causing brief episodes of mild to intense dizziness.", "doctor": "ENT Specialist / Neurologist", "icon": "🌀"},
+                "Acne":                  {"desc": "Skin condition that occurs when hair follicles become plugged with oil and dead skin cells.", "doctor": "Dermatologist", "icon": "🔴"},
+                "Urinary tract infection": {"desc": "Infection in any part of the urinary system — kidneys, bladder, ureters or urethra.", "doctor": "Urologist / General Physician", "icon": "💧"},
+                "Psoriasis":             {"desc": "Skin disease causing red, itchy scaly patches, most commonly on knees and elbows.", "doctor": "Dermatologist", "icon": "🔬"},
+                "Impetigo":              {"desc": "Common, highly contagious skin infection causing red sores that rupture and crust.", "doctor": "Dermatologist / General Physician", "icon": "🩹"},
+            }
+
+            info = disease_db.get(disease_name, {
+                "desc": "A medical condition identified based on the symptoms provided. Please consult a doctor for detailed information.",
+                "doctor": "General Physician",
+                "icon": "🩺"
+            })
+
+            # Save to history
             if "history" not in st.session_state:
                 st.session_state.history = []
             ist_offset = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
@@ -910,10 +976,11 @@ elif active == "Diagnose":
             st.session_state.history.insert(0, {
                 "time": ist_time.strftime("%d %b %Y, %I:%M %p"),
                 "symptoms": ", ".join(selected_symptoms[:3]) + ("..." if len(selected_symptoms) > 3 else ""),
-                "result": disease[0],
+                "result": disease_name,
                 "count": len(selected_symptoms)
             })
 
+            # ── RESULT BOX ──
             st.markdown(f"""
             <div class="result-box">
                 <div class="result-corner tl"></div>
@@ -921,7 +988,71 @@ elif active == "Diagnose":
                 <div class="result-corner bl"></div>
                 <div class="result-corner br"></div>
                 <div class="result-label">◈ Diagnosis Result</div>
-                <div class="result-disease">{disease[0]}</div>
+                <div class="result-disease">{info['icon']} &nbsp;{disease_name}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── CONFIDENCE + DESCRIPTION + DOCTOR ──
+            st.markdown(f"""
+            <style>
+            .info-grid {{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:20px; }}
+            .info-card {{
+                background:rgba(5,20,40,0.8);
+                border:1px solid rgba(0,229,255,0.15);
+                border-radius:18px; padding:22px 20px;
+                transition: border-color 0.3s;
+            }}
+            .info-card:hover {{ border-color:rgba(0,229,255,0.4); }}
+            .info-card-title {{
+                font-family:'Orbitron',monospace; font-size:10px;
+                letter-spacing:2px; color:#4a8fa8;
+                text-transform:uppercase; margin-bottom:12px;
+            }}
+            .conf-value {{
+                font-family:'Orbitron',monospace;
+                font-size:42px; font-weight:900;
+                color:{conf_color};
+                text-shadow: 0 0 20px {conf_color}60;
+                line-height:1;
+            }}
+            .conf-badge {{
+                display:inline-block; margin-top:8px;
+                padding:4px 12px; border-radius:20px;
+                font-size:11px; font-weight:700; letter-spacing:1px;
+                background: rgba(0,0,0,0.3);
+                border:1px solid {conf_color}60;
+                color:{conf_color};
+            }}
+            .desc-text {{
+                color:#9ec8d8; font-size:14px; line-height:1.7;
+            }}
+            .doctor-name {{
+                font-family:'Orbitron',monospace;
+                font-size:15px; font-weight:700;
+                color:#00e5ff; margin-top:8px; line-height:1.4;
+            }}
+            .doctor-icon {{ font-size:32px; margin-bottom:10px; }}
+            @media(max-width:768px){{
+                .info-grid {{ grid-template-columns:1fr; gap:12px; }}
+                .conf-value {{ font-size:32px; }}
+            }}
+            </style>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-title">⬡ Confidence Score</div>
+                    <div class="conf-value">{confidence}%</div>
+                    <div class="conf-badge">{conf_label} CONFIDENCE</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">⬡ About This Disease</div>
+                    <div class="desc-text">{info['desc']}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">⬡ Recommended Doctor</div>
+                    <div class="doctor-icon">👨‍⚕️</div>
+                    <div class="doctor-name">{info['doctor']}</div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1130,7 +1261,6 @@ elif active == "About":
         </p>
     </div>
     """, unsafe_allow_html=True)
-
 # ================================================================
 #  SIDEBAR
 # ================================================================
