@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -35,7 +35,7 @@ with open("encoder.pkl", "wb") as f:
 with open("columns.pkl", "wb") as f:
     pickle.dump(list(X.columns), f)
 
-=======
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -71,6 +71,4 @@ with open("encoder.pkl", "wb") as f:
 
 with open("columns.pkl", "wb") as f:
     pickle.dump(list(X.columns), f)
-
->>>>>>> 14d39f436e9cf6e7188ba256465f76d432fe2f09
 print("✅ All Files Saved Successfully")

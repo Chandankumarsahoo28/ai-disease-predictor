@@ -39,6 +39,8 @@ try:
     with open("model.pkl",   "rb") as f: model   = pickle.load(f)
     with open("encoder.pkl", "rb") as f: encoder = pickle.load(f)
     with open("columns.pkl", "rb") as f: columns = pickle.load(f)
+    # Remove invalid/unnamed columns
+    columns = [c for c in columns if c and not str(c).startswith("Unnamed")]
     model_loaded = True
 except Exception:
     model_loaded = False
