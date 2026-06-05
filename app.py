@@ -39,8 +39,7 @@ try:
     with open("model.pkl",   "rb") as f: model   = pickle.load(f)
     with open("encoder.pkl", "rb") as f: encoder = pickle.load(f)
     with open("columns.pkl", "rb") as f: columns = pickle.load(f)
-    # Keep all columns for model input, but filter display list for dropdown
-    display_columns = [c for c in columns if c and not str(c).startswith("Unnamed")]
+    display_columns = columns  # all 132 symptoms are valid
     model_loaded = True
 except Exception:
     model_loaded = False
@@ -1261,6 +1260,19 @@ elif active == "About":
         </p>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align:center; color:#4a7a8a; font-size:13px; letter-spacing:1px; padding:10px 0;">
+        Built with ❤️ using Artificial Intelligence & Machine Learning &nbsp;·&nbsp;
+        <span style="color:#00e5ff;">Streamlit Framework</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # ================================================================
 #  SIDEBAR
 # ================================================================
@@ -1290,6 +1302,6 @@ with st.sidebar:
 
 st.markdown("""
 <div class="footer">
-⬡ MED.AI · POWERED BY CHANDAN ⬡
+⬡ MED.AI · POWERED BY ARTIFICIAL INTELLIGENCE & MACHINE LEARNING ⬡
 </div>
 """, unsafe_allow_html=True)
