@@ -5,7 +5,6 @@ from PIL import Image
 import datetime
 import base64
 import io
-import os
 
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -70,24 +69,13 @@ ALL_SYMPTOMS = [
 ]
 
 def load_models():
-    # Try multiple possible paths
-    base_paths = [
-        "",           # current dir (Streamlit Cloud)
-        "./",
-        os.path.dirname(os.path.abspath(__file__)),
-    ]
-    for base in base_paths:
-        try:
-            mp  = os.path.join(base, "model.pkl")   if base else "model.pkl"
-            ep  = os.path.join(base, "encoder.pkl") if base else "encoder.pkl"
-            cp  = os.path.join(base, "columns.pkl") if base else "columns.pkl"
-            with open(mp, "rb") as f: m = pickle.load(f)
-            with open(ep, "rb") as f: e = pickle.load(f)
-            with open(cp, "rb") as f: c = pickle.load(f)
-            return m, e, list(c), True
-        except Exception:
-            continue
-    return None, None, ALL_SYMPTOMS, False
+    try:
+        with open("model.pkl",   "rb") as f: m = pickle.load(f)
+        with open("encoder.pkl", "rb") as f: e = pickle.load(f)
+        with open("columns.pkl", "rb") as f: c = pickle.load(f)
+        return m, e, list(c), True
+    except Exception:
+        return None, None, ALL_SYMPTOMS, False
 
 model, encoder, columns, model_loaded = load_models()
 display_columns = columns
@@ -1305,19 +1293,7 @@ elif active == "About":
         </p>
     </div>
     """, unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align:center; color:#4a7a8a; font-size:13px; letter-spacing:1px; padding:10px 0;">
-        Built with ❤️ using Artificial Intelligence & Machine Learning &nbsp;·&nbsp;
-        <span style="color:#00e5ff;">Streamlit Framework</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    
 # ================================================================
 #  SIDEBAR
 # ================================================================
@@ -1347,6 +1323,6 @@ with st.sidebar:
 
 st.markdown("""
 <div class="footer">
-⬡ MED.AI · POWERED BY ARTIFICIAL INTELLIGENCE & MACHINE LEARNING ⬡
+⬡ MED.AI · POWERED BY CHANDAN ⬡
 </div>
 """, unsafe_allow_html=True)
