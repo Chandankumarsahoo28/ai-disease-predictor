@@ -5,6 +5,7 @@ from PIL import Image
 import datetime
 import base64
 import io
+import os
 
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -35,17 +36,61 @@ except Exception:
 
 # ---------------- LOAD MODEL FILES ---------------- #
 
-try:
-    with open("model.pkl",   "rb") as f: model   = pickle.load(f)
-    with open("encoder.pkl", "rb") as f: encoder = pickle.load(f)
-    with open("columns.pkl", "rb") as f: columns = pickle.load(f)
-    display_columns = columns  # all 132 symptoms are valid
-    model_loaded = True
-except Exception:
-    model_loaded = False
-    columns = ["fever","cough","headache","fatigue","nausea","vomiting",
-               "chest pain","shortness of breath","dizziness","rash"]
-    display_columns = columns
+ALL_SYMPTOMS = [
+    'itching','skin_rash','nodal_skin_eruptions','continuous_sneezing','shivering',
+    'chills','joint_pain','stomach_pain','acidity','ulcers_on_tongue','muscle_wasting',
+    'vomiting','burning_micturition','spotting_ urination','fatigue','weight_gain',
+    'anxiety','cold_hands_and_feets','mood_swings','weight_loss','restlessness',
+    'lethargy','patches_in_throat','irregular_sugar_level','cough','high_fever',
+    'sunken_eyes','breathlessness','sweating','dehydration','indigestion','headache',
+    'yellowish_skin','dark_urine','nausea','loss_of_appetite','pain_behind_the_eyes',
+    'back_pain','constipation','abdominal_pain','diarrhoea','mild_fever','yellow_urine',
+    'yellowing_of_eyes','acute_liver_failure','fluid_overload','swelling_of_stomach',
+    'swelled_lymph_nodes','malaise','blurred_and_distorted_vision','phlegm',
+    'throat_irritation','redness_of_eyes','sinus_pressure','runny_nose','congestion',
+    'chest_pain','weakness_in_limbs','fast_heart_rate','pain_during_bowel_movements',
+    'pain_in_anal_region','bloody_stool','irritation_in_anus','neck_pain','dizziness',
+    'cramps','bruising','obesity','swollen_legs','swollen_blood_vessels',
+    'puffy_face_and_eyes','enlarged_thyroid','brittle_nails','swollen_extremeties',
+    'excessive_hunger','extra_marital_contacts','drying_and_tingling_lips',
+    'slurred_speech','knee_pain','hip_joint_pain','muscle_weakness','stiff_neck',
+    'swelling_joints','movement_stiffness','spinning_movements','loss_of_balance',
+    'unsteadiness','weakness_of_one_body_side','loss_of_smell','bladder_discomfort',
+    'foul_smell_of urine','continuous_feel_of_urine','passage_of_gases',
+    'internal_itching','toxic_look_(typhos)','depression','irritability','muscle_pain',
+    'altered_sensorium','red_spots_over_body','belly_pain','abnormal_menstruation',
+    'dischromic _patches','watering_from_eyes','increased_appetite','polyuria',
+    'family_history','mucoid_sputum','rusty_sputum','lack_of_concentration',
+    'visual_disturbances','receiving_blood_transfusion','receiving_unsterile_injections',
+    'coma','stomach_bleeding','distention_of_abdomen','history_of_alcohol_consumption',
+    'fluid_overload.1','blood_in_sputum','prominent_veins_on_calf','palpitations',
+    'painful_walking','pus_filled_pimples','blackheads','scurring','skin_peeling',
+    'silver_like_dusting','small_dents_in_nails','inflammatory_nails','blister',
+    'red_sore_around_nose','yellow_crust_ooze'
+]
+
+def load_models():
+    # Try multiple possible paths
+    base_paths = [
+        "",           # current dir (Streamlit Cloud)
+        "./",
+        os.path.dirname(os.path.abspath(__file__)),
+    ]
+    for base in base_paths:
+        try:
+            mp  = os.path.join(base, "model.pkl")   if base else "model.pkl"
+            ep  = os.path.join(base, "encoder.pkl") if base else "encoder.pkl"
+            cp  = os.path.join(base, "columns.pkl") if base else "columns.pkl"
+            with open(mp, "rb") as f: m = pickle.load(f)
+            with open(ep, "rb") as f: e = pickle.load(f)
+            with open(cp, "rb") as f: c = pickle.load(f)
+            return m, e, list(c), True
+        except Exception:
+            continue
+    return None, None, ALL_SYMPTOMS, False
+
+model, encoder, columns, model_loaded = load_models()
+display_columns = columns
 
 # ================================================================
 #  FULL CSS
@@ -892,7 +937,7 @@ elif active == "Diagnose":
         if not selected_symptoms:
             st.warning("⚠ Please select at least one symptom before analysing.")
         elif not model_loaded:
-            st.error("⚠ Model files not found. Please ensure model.pkl, encoder.pkl, columns.pkl are present.")
+            st.error("⚠ Model files not found! Please upload model.pkl, encoder.pkl, columns.pkl in the same folder as app.py")
         else:
             input_data = np.zeros(len(columns))
             for symptom in selected_symptoms:
@@ -1261,6 +1306,18 @@ elif active == "About":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align:center; color:#4a7a8a; font-size:13px; letter-spacing:1px; padding:10px 0;">
+        Built with ❤️ using Artificial Intelligence & Machine Learning &nbsp;·&nbsp;
+        <span style="color:#00e5ff;">Streamlit Framework</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # ================================================================
 #  SIDEBAR
 # ================================================================
@@ -1290,6 +1347,6 @@ with st.sidebar:
 
 st.markdown("""
 <div class="footer">
-⬡ MED.AI · POWERED BY CHANDAN ⬡
+⬡ MED.AI · POWERED BY ARTIFICIAL INTELLIGENCE & MACHINE LEARNING ⬡
 </div>
 """, unsafe_allow_html=True)
