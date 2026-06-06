@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import pickle
 import numpy as np
 from PIL import Image
@@ -20,10 +21,17 @@ st.set_page_config(
 if "active_page" not in st.session_state:
     st.session_state.active_page = "Dashboard"
 
+# ---------------- SAFE FILE PATHS ---------------- #
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def file_path(filename):
+    return os.path.join(BASE_DIR, filename)
+
 # ---------------- LOAD LOGO ---------------- #
 
 try:
-    logo = Image.open("logo.png")
+    logo = Image.open(file_path("logo.png"))
     _buf = io.BytesIO()
     logo.save(_buf, format="PNG")
     LOGO_B64 = base64.b64encode(_buf.getvalue()).decode()
@@ -69,15 +77,25 @@ ALL_SYMPTOMS = [
 ]
 
 def load_models():
-    try:
-        with open("model.pkl",   "rb") as f: m = pickle.load(f)
-        with open("encoder.pkl", "rb") as f: e = pickle.load(f)
-        with open("columns.pkl", "rb") as f: c = pickle.load(f)
-        return m, e, list(c), True
-    except Exception:
-        return None, None, ALL_SYMPTOMS, False
+    required_files = ["model.pkl", "encoder.pkl", "columns.pkl"]
+    missing = [name for name in required_files if not os.path.exists(file_path(name))]
 
-model, encoder, columns, model_loaded = load_models()
+    if missing:
+        return None, None, ALL_SYMPTOMS, False, missing
+
+    try:
+        with open(file_path("model.pkl"), "rb") as f:
+            m = pickle.load(f)
+        with open(file_path("encoder.pkl"), "rb") as f:
+            e = pickle.load(f)
+        with open(file_path("columns.pkl"), "rb") as f:
+            c = pickle.load(f)
+        return m, e, list(c), True, []
+    except Exception as ex:
+        st.error(f"Model loading error: {ex}")
+        return None, None, ALL_SYMPTOMS, False, required_files
+
+model, encoder, columns, model_loaded, missing_model_files = load_models()
 display_columns = columns
 
 # ================================================================
@@ -925,7 +943,7 @@ elif active == "Diagnose":
         if not selected_symptoms:
             st.warning("⚠ Please select at least one symptom before analysing.")
         elif not model_loaded:
-            st.error("⚠ Model files not found! Please upload model.pkl, encoder.pkl, columns.pkl in the same folder as app.py")
+            st.error("⚠ Model files not found: " + ", ".join(missing_model_files) + " | Keep them in the same folder as app.py")
         else:
             input_data = np.zeros(len(columns))
             for symptom in selected_symptoms:

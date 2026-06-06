@@ -1,31 +1,46 @@
+import os
+import pickle
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-import pickle
+from sklearn.metrics import accuracy_score
 
-df = pd.read_csv("Disease_predictor.csv")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "Disease_predictor.csv")
+
+if not os.path.exists(DATA_PATH):
+    raise FileNotFoundError("Disease_predictor.csv not found in the same folder as train_model.py")
+
+df = pd.read_csv(DATA_PATH)
+
+if "prognosis" not in df.columns:
+    raise ValueError("Dataset must contain a 'prognosis' column")
 
 X = df.drop("prognosis", axis=1)
 y = df["prognosis"]
 
 encoder = LabelEncoder()
-y = encoder.fit_transform(y)
+y_encoded = encoder.fit_transform(y)
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
 )
 
-model = RandomForestClassifier(random_state=42)
+model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(X_train, y_train)
 
-with open("model.pkl", "wb") as f:
+y_pred = model.predict(X_test)
+print("Accuracy:", round(accuracy_score(y_test, y_pred) * 100, 2), "%")
+
+with open(os.path.join(BASE_DIR, "model.pkl"), "wb") as f:
     pickle.dump(model, f)
 
-with open("encoder.pkl", "wb") as f:
+with open(os.path.join(BASE_DIR, "encoder.pkl"), "wb") as f:
     pickle.dump(encoder, f)
 
-with open("columns.pkl", "wb") as f:
+with open(os.path.join(BASE_DIR, "columns.pkl"), "wb") as f:
     pickle.dump(list(X.columns), f)
 
-print("✅ All Files Saved Successfully")
+print("✅ model.pkl, encoder.pkl, columns.pkl saved successfully")
